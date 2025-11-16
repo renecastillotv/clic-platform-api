@@ -1,41 +1,44 @@
-name: Deploy to App Runner
+name: Deploy to AWS App Runner
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-    - name: Login to ECR
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build and push Docker image
-      env:
-        ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-        ECR_REPO: clic-platform-api
-        IMAGE_TAG: latest
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG
+      - name: Build and push Docker image to ECR
+        env:
+          ECR_REGISTRY: 916574583928.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPO: clic-platform-api
+          IMAGE_TAG: latest
+        run: |
+          echo "Building image..."
+          docker build -t $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG .
 
-    - name: Deploy to App Runner
-      run: |
-        aws apprunner update-service \
-          --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN }} \
-          --source-configuration ImageRepository={
-              ImageIdentifier="${{ secrets.ECR_REGISTRY }}/clic-platform-api:latest",
-              ImageRepositoryType="ECR"
-          }
+          echo "Pushing image..."
+          docker push $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG
+
+      - name: Deploy to App Runner
+        uses: awslabs/amazon-app-runner-deploy@v1
+        with:
+          service-arn: arn:aws:apprunner:us-east-1:916574583928:service/clic-api/your-service-id-here
+          image-uri: 916574583928.dkr.ecr.us-east-1.amazonaws.com/clic-platform-api:latest
+          region: us-east-1
