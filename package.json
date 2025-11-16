@@ -14,4 +14,8 @@
     "dotenv": "^16.4.5",
     "meilisearch": "^0.41.0"
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c59b567deafa8dac65d628394fecc4b443b5fac4

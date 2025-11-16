@@ -66,8 +66,15 @@ app.get('/', (req, res) => {
   });
 });
 
+<<<<<<< HEAD
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`API running on ${PORT}`);
+=======
+// IMPORTANTE: 0.0.0.0 para Docker/App Runner
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 CLIC Platform API running on port ${PORT}`);
+  console.log(`📁 Functions directory: ${FUNCTIONS_DIR}`);
+>>>>>>> c59b567deafa8dac65d628394fecc4b443b5fac4
 });

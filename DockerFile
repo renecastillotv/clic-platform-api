@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 FROM node:18-alpine
 
 WORKDIR /app
@@ -10,3 +11,23 @@ COPY . .
 EXPOSE 8080
 
 CMD ["node", "server.js"]
+=======
+# Base image
+FROM node:18-alpine
+
+# Set app directory
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install --production
+
+# Copy the rest of the project
+COPY . .
+
+# Expose App Runner port
+EXPOSE 8080
+
+# Start the API
+CMD ["node", "server.js"]
+>>>>>>> c59b567deafa8dac65d628394fecc4b443b5fac4
