@@ -1,0 +1,4 @@
+clic-platform-api/
+   .github/
+      workflows/
+         deploy.yml
