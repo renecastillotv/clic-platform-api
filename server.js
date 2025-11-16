@@ -1,55 +1,73 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
 
 const app = express();
+
+// AWS/App Runner pone el puerto en process.env.PORT
 const PORT = process.env.PORT || 8080;
 
+// Middlewares
 app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Directorio donde viven las funciones
-const FUNCTIONS_DIR = path.join(__dirname, "functions");
+// Directorio para las funciones
+const FUNCTIONS_DIR = path.join(__dirname, 'functions');
 
-// Asegurar carpeta
+// Crear directorio de funciones si no existe
 if (!fs.existsSync(FUNCTIONS_DIR)) {
   fs.mkdirSync(FUNCTIONS_DIR, { recursive: true });
 }
 
-app.all("/:fn", async (req, res) => {
-  const file = path.join(FUNCTIONS_DIR, `${req.params.fn}.js`);
-
-  if (!fs.existsSync(file)) {
-    return res.status(404).json({
-      error: `Function '${req.params.fn}' not found`,
-    });
-  }
+// Endpoint dinámico que carga funciones al vuelo
+app.all('/:functionName', async (req, res) => {
+  const { functionName } = req.params;
+  const functionPath = path.join(FUNCTIONS_DIR, `${functionName}.js`);
 
   try {
-    delete require.cache[require.resolve(file)];
-    const fn = require(file);
-
-    if (typeof fn !== "function") {
-      return res.status(500).json({ error: "File must export a function(req,res)" });
+    if (!fs.existsSync(functionPath)) {
+      return res.status(404).json({
+        error: `Function '${functionName}' not found`,
+        hint: `Create ${functionName}.js in the functions directory`,
+      });
     }
 
-    await fn(req, res);
-  } catch (err) {
-    console.error("Function error:", err);
-    res.status(500).json({ error: err.message });
+    // Limpiar cache para recargar cambios sin reiniciar
+    delete require.cache[require.resolve(functionPath)];
+
+    const functionModule = require(functionPath);
+
+    if (typeof functionModule !== 'function') {
+      return res.status(500).json({
+        error: `Function '${functionName}' must export a function`,
+      });
+    }
+
+    await functionModule(req, res);
+  } catch (error) {
+    console.error(`Error in function '${functionName}':`, error);
+    res.status(500).json({
+      error: 'Function execution failed',
+      message: error.message,
+    });
   }
 });
 
-app.get("/", (req, res) => {
+// Endpoint raíz
+app.get('/', (req, res) => {
   res.json({
-    status: "OK – CLIC Platform API",
-    functions: "Place JS files in /functions and call /your-function",
+    message: 'CLIC Platform API Running',
+    endpoints: {
+      functions: 'Create .js files in /functions directory',
+      example: '/health, /sync-property, etc.',
+    },
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 CLIC API running on port ${PORT}`);
+// IMPORTANTE: 0.0.0.0 para Docker/App Runner
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 CLIC Platform API running on port ${PORT}`);
+  console.log(`📁 Functions directory: ${FUNCTIONS_DIR}`);
 });
